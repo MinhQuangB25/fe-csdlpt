@@ -1,0 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
+
+:root {
+  --primary: #0db9f2;
+  --bg-dark: #101e22;
+  --gradient: linear-gradient(135deg, #0db9f2, #10b981);
+  --text-light: #ffffff;
+  --text-gray: #a0aec0;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  background-color: var(--bg-dark);
+  color: var(--text-light);
+  /* Ép giao diện hiển thị cỡ Mobile 430px ở giữa màn hình Desktop */
+  max-width: 430px;
+  margin: 0 auto;
+  min-height: 100vh;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  position: relative;
+}
