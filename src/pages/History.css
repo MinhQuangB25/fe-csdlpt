@@ -1,0 +1,88 @@
+
+.history-stats {
+  display: flex;
+  justify-content: space-between;
+  text-align: center;
+}
+
+.history-stats p {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.history-filter {
+  display: flex;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.filter-chip {
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-chip.active {
+  background: var(--gradient-primary);
+  color: white;
+  border-color: transparent;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.history-item {
+  padding: 14px;
+}
+
+.history-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.trip-type {
+  font-size: 24px;
+}
+
+.trip-info {
+  flex: 1;
+}
+
+.trip-route {
+  font-weight: 600;
+}
+
+.trip-date {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.trip-price {
+  font-weight: 600;
+}
+
+.history-bottom {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.trip-actions {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 430px) {
+  .history-stats {
+    font-size: 14px;
+  }
+}
