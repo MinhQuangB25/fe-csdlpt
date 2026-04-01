@@ -1,19 +1,80 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useUser } from '../context/UserContext'
+import api from '../services/api'
 import BottomNav from '../components/BottomNav'
-
-const rides = [
-    { id: 1, type: 'two_wheeler', from: '123 Nguyễn Huệ', to: 'Sân bay TSN', price: '15.000đ', date: '07/03/2026', status: 'done', driver: 'Văn Tài', rating: 5 },
-    { id: 2, type: 'directions_car', from: 'Đại học Bách Khoa', to: 'Vincom Center', price: '45.000đ', date: '06/03/2026', status: 'done', driver: 'Minh Đức', rating: 4 },
-    { id: 3, type: 'two_wheeler', from: 'BV Chợ Rẫy', to: '456 Lê Lợi, Q.3', price: '18.000đ', date: '05/03/2026', status: 'cancelled', driver: 'Thanh Hùng', rating: 0 },
-    { id: 4, type: 'airport_shuttle', from: 'Sân bay TSN', to: 'Q.7, Phú Mỹ Hưng', price: '95.000đ', date: '04/03/2026', status: 'done', driver: 'Hoàng Nam', rating: 5 },
-    { id: 5, type: 'directions_car', from: 'Landmark 81', to: 'AEON Mall Bình Tân', price: '52.000đ', date: '02/03/2026', status: 'done', driver: 'Quốc Bảo', rating: 4 },
-]
 
 export default function History() {
     const navigate = useNavigate()
+    const { user, region } = useUser()
     const [filter, setFilter] = useState('all')
+    const [rides, setRides] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState('')
     const filtered = filter === 'all' ? rides : rides.filter(r => r.status === filter)
+
+    useEffect(() => {
+        if (!user) {
+            navigate('/login')
+            return
+        }
+
+        fetchHistory()
+    }, [user])
+
+    const fetchHistory = async () => {
+        if (!user) return
+
+        setLoading(true)
+        setError('')
+
+        try {
+            const location = region === 'NORTH' ? 'Hanoi' : 'HCM'
+            const response = await api.getTripHistory(user.id, location)
+
+            if (response.success && response.data) {
+                // Convert backend data to frontend format
+                const formattedRides = response.data.map((trip, index) => ({
+                    id: trip.trip_id || index,
+                    type: mapVehicleType(trip.vehicle_type),
+                    from: trip.pickup_address || 'Điểm đón',
+                    to: trip.dropoff_address || 'Điểm đến',
+                    price: trip.amount ? `${trip.amount.toLocaleString()}đ` : 'N/A',
+                    date: formatDate(trip.created_at),
+                    status: trip.status === 'COMPLETED' ? 'done' : 'cancelled',
+                    driver: trip.driver_name || 'Tài xế',
+                    rating: trip.rating || 0
+                }))
+
+                setRides(formattedRides)
+            }
+        } catch (err) {
+            console.error('History fetch error:', err)
+            setError(err.message || 'Không thể tải lịch sử. Vui lòng thử lại.')
+
+            // Set mock data as fallback for demo
+            setRides([
+                { id: 1, type: 'two_wheeler', from: '123 Nguyễn Huệ', to: 'Sân bay TSN', price: '15.000đ', date: '07/03/2026', status: 'done', driver: 'Văn Tài', rating: 5 },
+            ])
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const mapVehicleType = (type) => {
+        const typeMap = {
+            'BIKE': 'two_wheeler',
+            'CAR_4_SEAT': 'directions_car',
+            'CAR_7_SEAT': 'airport_shuttle'
+        }
+        return typeMap[type] || 'two_wheeler'
+    }
+
+    const formatDate = (dateString) => {
+        if (!dateString) return 'N/A'
+        const date = new Date(dateString)
+        return date.toLocaleDateString('vi-VN')
+    }
 
     return (
         <div className="page">
@@ -22,49 +83,96 @@ export default function History() {
             </div>
 
             <div style={{ padding: '0 20px' }}>
-                {/* Filters */}
-                <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-                    {[['all', 'Tất cả'], ['done', 'Hoàn thành'], ['cancelled', 'Đã hủy']].map(([val, label]) => (
-                        <button key={val} onClick={() => setFilter(val)} style={{
-                            padding: '8px 16px', borderRadius: 20, fontSize: 13, fontWeight: 500,
-                            cursor: 'pointer', border: 'none', fontFamily: 'inherit', transition: 'all 0.2s',
-                            background: filter === val ? 'rgba(13,185,242,0.2)' : 'var(--bg-card)',
-                            color: filter === val ? 'var(--accent-blue)' : 'var(--text-secondary)',
-                        }}>{label}</button>
-                    ))}
-                </div>
+                {/* Error message */}
+                {error && (
+                    <div style={{
+                        padding: '12px',
+                        background: 'rgba(249, 115, 22, 0.1)',
+                        border: '1px solid rgba(249, 115, 22, 0.3)',
+                        borderRadius: '12px',
+                        color: '#f97316',
+                        fontSize: '13px',
+                        marginBottom: '16px'
+                    }}>
+                        ⚠️ {error}
+                    </div>
+                )}
 
-                {/* Rides */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 100 }}>
-                    {filtered.map(r => (
-                        <div key={r.id} className="card" style={{ cursor: 'pointer' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                <div style={{
-                                    width: 44, height: 44, borderRadius: 12,
-                                    background: r.status === 'cancelled' ? 'rgba(239,68,68,0.1)' : 'rgba(13,185,242,0.1)',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                }}>
-                                    <span className="material-icons-round" style={{ color: r.status === 'cancelled' ? 'var(--accent-red)' : 'var(--accent-blue)' }}>{r.type}</span>
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                                        <span style={{ fontWeight: 600, fontSize: 14 }}>{r.from}</span>
-                                        <span style={{ fontWeight: 700, fontSize: 14, color: r.status === 'cancelled' ? 'var(--text-muted)' : 'var(--accent-blue)' }}>{r.price}</span>
-                                    </div>
-                                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>→ {r.to}</div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-                                        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{r.driver} • {r.date}</span>
-                                        {r.status === 'done' ? (
-                                            <span className="badge badge-green" style={{ fontSize: 10 }}>Hoàn thành</span>
-                                        ) : (
-                                            <span className="badge badge-red" style={{ fontSize: 10 }}>Đã hủy</span>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
+                {/* Loading state */}
+                {loading && (
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        padding: '40px',
+                        color: 'var(--text-muted)'
+                    }}>
+                        <span className="material-icons-round" style={{ fontSize: 40, animation: 'spin 1s linear infinite' }}>
+                            sync
+                        </span>
+                    </div>
+                )}
+
+                {/* Filters */}
+                {!loading && (
+                    <>
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+                            {[['all', 'Tất cả'], ['done', 'Hoàn thành'], ['cancelled', 'Đã hủy']].map(([val, label]) => (
+                                <button key={val} onClick={() => setFilter(val)} style={{
+                                    padding: '8px 16px', borderRadius: 20, fontSize: 13, fontWeight: 500,
+                                    cursor: 'pointer', border: 'none', fontFamily: 'inherit', transition: 'all 0.2s',
+                                    background: filter === val ? 'rgba(13,185,242,0.2)' : 'var(--bg-card)',
+                                    color: filter === val ? 'var(--accent-blue)' : 'var(--text-secondary)',
+                                }}>{label}</button>
+                            ))}
                         </div>
-                    ))}
-                </div>
+
+                        {/* Rides */}
+                        {filtered.length === 0 ? (
+                            <div style={{
+                                textAlign: 'center',
+                                padding: '60px 20px',
+                                color: 'var(--text-muted)'
+                            }}>
+                                <span className="material-icons-round" style={{ fontSize: 60, opacity: 0.3, marginBottom: 16 }}>
+                                    trip_origin
+                                </span>
+                                <div>Chưa có chuyến đi nào</div>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 100 }}>
+                                {filtered.map(r => (
+                                    <div key={r.id} className="card" style={{ cursor: 'pointer' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                            <div style={{
+                                                width: 44, height: 44, borderRadius: 12,
+                                                background: r.status === 'cancelled' ? 'rgba(239,68,68,0.1)' : 'rgba(13,185,242,0.1)',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                            }}>
+                                                <span className="material-icons-round" style={{ color: r.status === 'cancelled' ? 'var(--accent-red)' : 'var(--accent-blue)' }}>{r.type}</span>
+                                            </div>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                                    <span style={{ fontWeight: 600, fontSize: 14 }}>{r.from}</span>
+                                                    <span style={{ fontWeight: 700, fontSize: 14, color: r.status === 'cancelled' ? 'var(--text-muted)' : 'var(--accent-blue)' }}>{r.price}</span>
+                                                </div>
+                                                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>→ {r.to}</div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+                                                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{r.driver} • {r.date}</span>
+                                                    {r.status === 'done' ? (
+                                                        <span className="badge badge-green" style={{ fontSize: 10 }}>Hoàn thành</span>
+                                                    ) : (
+                                                        <span className="badge badge-red" style={{ fontSize: 10 }}>Đã hủy</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </>
+                )}
             </div>
             <BottomNav />
         </div>

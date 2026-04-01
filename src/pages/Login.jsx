@@ -1,11 +1,51 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useUser } from '../context/UserContext'
+import api from '../services/api'
 import './Login.css'
 
 export default function Login() {
     const navigate = useNavigate()
+    const { login } = useUser()
     const [phone, setPhone] = useState('')
     const [region, setRegion] = useState('south')
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState('')
+
+    const handleLogin = async () => {
+        if (!phone) {
+            setError('Vui lòng nhập số điện thoại')
+            return
+        }
+
+        setLoading(true)
+        setError('')
+
+        try {
+            // Convert region to location
+            const location = region === 'north' ? 'Hanoi' : 'HCM'
+
+            // Format phone number: convert +84 to 0 format (backend expects 0XXXXXXXXX)
+            const formattedPhone = '0' + phone.replace(/\s/g, '')
+
+            const response = await api.login(formattedPhone, location)
+
+            // Save user data to context
+            login(
+                response.user,
+                response.token,
+                response.routing.region,
+                response.routing
+            )
+
+            navigate('/home')
+        } catch (err) {
+            console.error('Login error:', err)
+            setError(err.message || 'Đăng nhập thất bại. Vui lòng thử lại.')
+        } finally {
+            setLoading(false)
+        }
+    }
 
     return (
         <div className="page login-page">
@@ -58,9 +98,29 @@ export default function Login() {
                         </select>
                     </div>
 
-                    <button className="btn btn-primary" onClick={() => navigate('/home')}>
-                        <span className="material-icons-round">login</span>
-                        Đăng nhập
+                    {error && (
+                        <div style={{
+                            padding: '12px',
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            borderRadius: '8px',
+                            color: '#ef4444',
+                            fontSize: '13px',
+                            marginBottom: '16px'
+                        }}>
+                            {error}
+                        </div>
+                    )}
+
+                    <button
+                        className="btn btn-primary"
+                        onClick={handleLogin}
+                        disabled={loading || !phone}
+                    >
+                        <span className="material-icons-round">
+                            {loading ? 'hourglass_empty' : 'login'}
+                        </span>
+                        {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
                     </button>
 
                     <div className="login-footer">
