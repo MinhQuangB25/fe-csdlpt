@@ -1,16 +1,117 @@
-# React + Vite
+# 🚕 GoiXe - Ride Hailing Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend React cho ứng dụng gọi xe phân tán theo vị trí.
 
-Currently, two official plugins are available:
+## 🚀 Quick Start
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### 1. Cài đặt dependencies
+```bash
+npm install
+```
 
-## React Compiler
+### 2. Cấu hình Backend URL
+```bash
+# .env file đã được tạo sẵn
+# Mặc định: VITE_API_URL=http://localhost:8000
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 3. Chạy development server
+```bash
+npm run dev
+```
 
-## Expanding the ESLint configuration
+Ứng dụng chạy tại: **http://localhost:5173**
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## 📚 Tài liệu
+
+- **[API_INTEGRATION.md](./API_INTEGRATION.md)** - Chi tiết tích hợp Backend API
+- **[../Ride-Hailing-Project/DOCKER_QUICKSTART.md](../Ride-Hailing-Project/DOCKER_QUICKSTART.md)** - Hướng dẫn chạy toàn bộ hệ thống với Docker
+
+## 🔌 Backend API
+
+Frontend đã được tích hợp với Backend FastAPI:
+
+- ✅ Login API (`POST /login`)
+- ✅ Book Trip API (`POST /book-trip`)
+- ✅ Trip History API (`POST /trip-history`)
+
+## 🧪 Test với Mock Users
+
+**Miền Bắc:**
+- Phone: `912000001`
+- Khu vực: Miền Bắc
+
+**Miền Nam:**
+- Phone: `913000001`
+- Khu vực: Miền Nam
+
+## 🛠 Tech Stack
+
+- **React 19** - UI framework
+- **Vite** - Build tool & dev server
+- **React Router** - Client-side routing
+- **Context API** - State management
+- **Fetch API** - HTTP requests
+
+## 📦 Project Structure
+
+```
+src/
+├── services/
+│   └── api.js              # API service
+├── context/
+│   └── UserContext.jsx     # User state management
+├── pages/
+│   ├── Login.jsx           # Login page with API
+│   ├── Booking.jsx         # Booking page with API
+│   └── History.jsx         # History page with API
+└── components/
+    └── BottomNav.jsx       # Bottom navigation
+```
+
+## 🧑‍💻 Available Scripts
+
+```bash
+npm run dev      # Start dev server
+npm run build    # Build for production
+npm run preview  # Preview production build
+npm run lint     # Run ESLint
+```
+
+## 🌐 Full System Setup
+
+Để chạy đầy đủ hệ thống (Database + Backend + Frontend):
+
+```bash
+# 1. Start Database + Backend với Docker
+cd ../Ride-Hailing-Project
+docker compose up -d
+
+# 2. Setup replication (lần đầu tiên)
+bash scripts/00-setup-replication.sh
+
+# 3. Start Frontend
+cd ../goixe
+npm run dev
+```
+
+## 📝 Features
+
+- ✅ User authentication
+- ✅ Region-based routing (North/South)
+- ✅ Vehicle selection (Bike, 4-seat car, 7-seat car)
+- ✅ Trip booking
+- ✅ Trip history
+- ✅ Real-time error handling
+- ✅ Loading states
+- ✅ LocalStorage persistence
+
+## 🔗 Related Projects
+
+- [Backend FastAPI](../Ride-Hailing-Project/backend/)
+- [Database Infrastructure](../Ride-Hailing-Project/)
+
+## 📄 License
+
+Private project for educational purposes.
+

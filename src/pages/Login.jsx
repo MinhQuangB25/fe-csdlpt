@@ -8,13 +8,14 @@ export default function Login() {
     const navigate = useNavigate()
     const { login } = useUser()
     const [phone, setPhone] = useState('')
+    const [password, setPassword] = useState('')
     const [region, setRegion] = useState('south')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
 
     const handleLogin = async () => {
-        if (!phone) {
-            setError('Vui lòng nhập số điện thoại')
+        if (!phone || !password) {
+            setError('Vui lòng nhập đầy đủ điện thoại và mật khẩu')
             return
         }
 
@@ -28,7 +29,7 @@ export default function Login() {
             // Format phone number: convert +84 to 0 format (backend expects 0XXXXXXXXX)
             const formattedPhone = '0' + phone.replace(/\s/g, '')
 
-            const response = await api.login(formattedPhone, location)
+            const response = await api.login(formattedPhone, password, location)
 
             // Save user data to context
             login(
@@ -84,6 +85,17 @@ export default function Login() {
                                 onChange={e => setPhone(e.target.value)}
                             />
                         </div>
+                    </div>
+
+                    <div className="input-group">
+                        <label>Mật khẩu</label>
+                        <input
+                            type="password"
+                            className="input-field"
+                            placeholder="Nhập mật khẩu"
+                            value={password}
+                            onChange={e => setPassword(e.target.value)}
+                        />
                     </div>
 
                     <div className="input-group">

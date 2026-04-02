@@ -1,5 +1,29 @@
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet'
 import BottomNav from '../components/BottomNav'
+import L from 'leaflet'
+
+// Fix generic Leaflet icon issue
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
+
+// Custom user pulse marker
+const userIcon = L.divIcon({
+    className: 'custom-pulse-marker',
+    html: `
+        <div style="position: relative; width: 100%; height: 100%; border-radius: 50%;">
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 14px; height: 14px; background: #0db9f2; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(13,185,242,0.8); z-index: 2;"></div>
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; background: rgba(13,185,242,0.3); border-radius: 50%; animation: pulse-radar 2s infinite ease-out; z-index: 1;"></div>
+        </div>
+    `,
+    iconSize: [40, 40],
+    iconAnchor: [20, 20]
+});
 
 const vehicles = [
     { icon: 'two_wheeler', name: 'Xe máy', price: '15.000đ', time: '3 phút', color: '#0db9f2' },
@@ -13,58 +37,38 @@ export default function Home() {
     return (
         <div className="page">
             {/* Map Area */}
-            <div style={{
-                height: '55vh', position: 'relative',
-                background: 'linear-gradient(135deg, #0a1628 0%, #0d1f3c 30%, #152847 60%, #0a1628 100%)',
-                overflow: 'hidden'
-            }}>
-                {/* Grid pattern */}
-                <div style={{
-                    position: 'absolute', inset: 0, opacity: 0.1,
-                    backgroundImage: 'linear-gradient(rgba(13,185,242,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(13,185,242,0.3) 1px, transparent 1px)',
-                    backgroundSize: '40px 40px'
-                }} />
-                {/* Roads */}
-                <div style={{ position: 'absolute', top: '30%', left: 0, right: 0, height: 2, background: 'rgba(13,185,242,0.2)' }} />
-                <div style={{ position: 'absolute', top: 0, bottom: 0, left: '40%', width: 2, background: 'rgba(13,185,242,0.2)' }} />
-                <div style={{ position: 'absolute', top: '60%', left: 0, right: 0, height: 2, background: 'rgba(13,185,242,0.15)' }} />
-                <div style={{ position: 'absolute', top: 0, bottom: 0, left: '70%', width: 2, background: 'rgba(13,185,242,0.15)' }} />
+            <div style={{ height: '55vh', position: 'relative', zIndex: 1 }}>
+                <MapContainer 
+                    center={[10.762622, 106.660172]} // Default to Ho Chi Minh City
+                    zoom={15} 
+                    zoomControl={false}
+                    style={{ height: '100%', width: '100%' }}
+                >
+                    <TileLayer
+                        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                        attribution='&copy; <a href="https://carto.com/">Carto</a>'
+                    />
+                    <Marker position={[10.762622, 106.660172]} icon={userIcon} />
+                </MapContainer>
 
-                {/* User location */}
-                <div style={{
-                    position: 'absolute', top: '45%', left: '50%', transform: 'translate(-50%, -50%)'
-                }}>
-                    <div style={{
-                        width: 18, height: 18, background: '#0db9f2', borderRadius: '50%',
-                        border: '3px solid white', boxShadow: '0 0 20px rgba(13,185,242,0.6)',
-                        animation: 'pulse 2s infinite'
-                    }} />
-                    <div style={{
-                        position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-                        width: 60, height: 60, borderRadius: '50%',
-                        background: 'rgba(13,185,242,0.15)',
-                        animation: 'radar 2s infinite'
-                    }} />
-                </div>
-
-                {/* GPS button */}
+                {/* GPS button overlay */}
                 <button style={{
-                    position: 'absolute', bottom: 16, right: 16,
+                    position: 'absolute', bottom: 44, right: 16, zIndex: 400,
                     width: 44, height: 44, borderRadius: '50%',
-                    background: 'rgba(26,26,46,0.9)', border: '1px solid var(--border-color)',
-                    color: 'var(--accent-blue)', cursor: 'pointer',
+                    background: 'rgba(26,26,46,0.9)', border: '1px solid rgba(255,255,255,0.1)',
+                    color: '#0db9f2', cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    backdropFilter: 'blur(10px)'
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
                 }}>
                     <span className="material-icons-round">my_location</span>
                 </button>
 
-                {/* Region badge */}
+                {/* Region badge overlay */}
                 <div style={{
-                    position: 'absolute', top: 48, left: 20,
+                    position: 'absolute', top: 48, left: 20, zIndex: 400,
                     display: 'flex', alignItems: 'center', gap: 8,
                 }}>
-                    <div className="badge badge-green">
+                    <div className="badge badge-green" style={{ background: 'rgba(16, 185, 129, 0.2)', border: '1px solid rgba(16,185,129,0.3)', backdropFilter: 'blur(5px)' }}>
                         <span className="status-dot online" style={{ width: 6, height: 6 }} />
                         Miền Nam
                     </div>

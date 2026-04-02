@@ -4,9 +4,20 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 class ApiService {
     async request(endpoint, options = {}) {
         const url = `${API_BASE_URL}${endpoint}`;
+        
+        // Lấy token từ localStorage mỗi lần gửi request
+        const token = localStorage.getItem('token');
+        const defaultHeaders = {
+            'Content-Type': 'application/json',
+        };
+        
+        if (token) {
+            defaultHeaders['Authorization'] = `Bearer ${token}`;
+        }
+
         const config = {
             headers: {
-                'Content-Type': 'application/json',
+                ...defaultHeaders,
                 ...options.headers,
             },
             ...options,
@@ -28,13 +39,22 @@ class ApiService {
     }
 
     // Login user
-    async login(identifier, location) {
+    async login(identifier, password, location) {
         return this.request('/login', {
             method: 'POST',
             body: JSON.stringify({
                 identifier,
+                password,
                 location,
             }),
+        });
+    }
+
+    // Register user
+    async register(payload) {
+        return this.request('/api/register', {
+            method: 'POST',
+            body: JSON.stringify(payload),
         });
     }
 
@@ -103,6 +123,20 @@ class ApiService {
                 region,
                 mode,
             }),
+        });
+    }
+
+    // Health Check: Get current status of all DB nodes
+    async getHealthCheckStatus() {
+        return this.request('/api/health-check/status', {
+            method: 'GET',
+        });
+    }
+
+    // Health Check: Get failover/recovery event timeline
+    async getHealthCheckEvents(limit = 50) {
+        return this.request(`/api/health-check/events?limit=${limit}`, {
+            method: 'GET',
         });
     }
 }

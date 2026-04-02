@@ -120,7 +120,7 @@ export default function Tracking() {
                     boxShadow: '0 0 20px rgba(13,185,242,0.5)', animation: 'pulse 2s infinite'
                 }}>
                     <span className="material-icons-round" style={{ fontSize: 20, color: 'white' }}>
-                        {booking.vehicle_type === 'CAR_4' || booking.vehicle_type === 'CAR_7' ? 'directions_car' : 'two_wheeler'}
+                        {booking.vehicle_type === 'CAR' || booking.vehicle_type === 'PREMIUM' ? 'directions_car' : 'two_wheeler'}
                     </span>
                 </div>
                 <button className="btn-icon" onClick={() => navigate('/home')} style={{ position: 'absolute', top: 48, left: 16 }}>
@@ -197,11 +197,11 @@ export default function Tracking() {
                 <div className="card" style={{ marginBottom: 16 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                         <div style={{ width: 8, height: 8, background: '#22c55e', borderRadius: '50%' }} />
-                        <span style={{ fontSize: 13 }}>Điểm đón ({booking.pickup_lat?.toFixed(4)}, {booking.pickup_lng?.toFixed(4)})</span>
+                        <span style={{ fontSize: 13 }}>Điểm đón ({Number(booking.pickup_lat || 0).toFixed(4)}, {Number(booking.pickup_lng || 0).toFixed(4)})</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <div style={{ width: 8, height: 8, background: '#ef4444', borderRadius: '50%' }} />
-                        <span style={{ fontSize: 13 }}>Điểm đến ({booking.dropoff_lat?.toFixed(4)}, {booking.dropoff_lng?.toFixed(4)})</span>
+                        <span style={{ fontSize: 13 }}>Điểm đến ({Number(booking.dropoff_lat || 0).toFixed(4)}, {Number(booking.dropoff_lng || 0).toFixed(4)})</span>
                     </div>
                     <div className="divider" />
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>

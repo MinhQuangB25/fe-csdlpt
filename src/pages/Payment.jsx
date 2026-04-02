@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 const methods = [
-    { id: 'cash', icon: '💵', name: 'Tiền mặt', desc: 'Thanh toán khi hoàn thành', color: '#22c55e' },
-    { id: 'wallet', icon: '👛', name: 'Ví GoiXe', desc: 'Số dư: 350.000đ', color: '#0db9f2' },
-    { id: 'momo', icon: '🟣', name: 'MoMo', desc: '**** 5678', color: '#a855f7' },
-    { id: 'zalopay', icon: '🔵', name: 'ZaloPay', desc: '**** 1234', color: '#0db9f2' },
-    { id: 'vnpay', icon: '🔴', name: 'VNPay', desc: '**** 9012', color: '#ef4444' },
+    { id: 'CASH', icon: '💵', name: 'Tiền mặt', desc: 'Thanh toán khi hoàn thành', color: '#22c55e' },
+    { id: 'WALLET', icon: '👛', name: 'Ví GoiXe', desc: 'Số dư: 350.000đ', color: '#0db9f2' },
+    { id: 'MOMO', icon: '🟣', name: 'MoMo', desc: '**** 5678', color: '#a855f7' },
+    { id: 'ZALOPAY', icon: '🔵', name: 'ZaloPay', desc: '**** 1234', color: '#0db9f2' },
+    { id: 'VNPAY', icon: '🔴', name: 'VNPay', desc: '**** 9012', color: '#ef4444' },
 ]
 const topupAmounts = [50000, 100000, 200000, 500000]
 const transactions = [
@@ -17,8 +17,17 @@ const transactions = [
 
 export default function Payment() {
     const navigate = useNavigate()
-    const [selected, setSelected] = useState('cash')
+    const location = useLocation()
+    const [selected, setSelected] = useState(location.state?.paymentMethod?.id || 'CASH')
     const [showTopup, setShowTopup] = useState(false)
+
+    const handleSelect = (m) => {
+        setSelected(m.id)
+        // Auto navigate back to booking with the selected payment method
+        setTimeout(() => {
+            navigate('/booking', { state: { ...location.state, paymentMethod: m } })
+        }, 150)
+    }
 
     return (
         <div className="page">
@@ -31,7 +40,7 @@ export default function Payment() {
 
             <div style={{ padding: '0 20px' }}>
                 {methods.map(m => (
-                    <button key={m.id} onClick={() => setSelected(m.id)} className="card" style={{
+                    <button key={m.id} onClick={() => handleSelect(m)} className="card" style={{
                         display: 'flex', alignItems: 'center', gap: 14, padding: 16, marginBottom: 8,
                         width: '100%', cursor: 'pointer',
                         borderColor: selected === m.id ? 'var(--accent-blue)' : undefined

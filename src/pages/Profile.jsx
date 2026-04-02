@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useUser } from '../context/UserContext'
 import BottomNav from '../components/BottomNav'
 
 const menuItems = [
@@ -13,6 +14,12 @@ const menuItems = [
 
 export default function Profile() {
     const navigate = useNavigate()
+    const { user, region, logout } = useUser()
+
+    const handleLogout = () => {
+        logout()
+        navigate('/login')
+    }
 
     return (
         <div className="page">
@@ -30,14 +37,16 @@ export default function Profile() {
                     }}>
                         <span className="material-icons-round" style={{ fontSize: 36, color: 'white' }}>person</span>
                     </div>
-                    <h3>Nguyễn Văn A</h3>
-                    <p style={{ fontSize: 13 }}>0912 345 678</p>
+                    <h3>{user?.name || 'Vị Khách Ẩn Danh'}</h3>
+                    <p style={{ fontSize: 13 }}>{user?.phone || 'Chưa cập nhật số điện thoại'}</p>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 8 }}>
                         <span className="material-icons-round" style={{ fontSize: 18, color: '#eab308' }}>star</span>
-                        <span style={{ fontWeight: 700, fontSize: 16 }}>4.9</span>
-                        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>• 48 chuyến</span>
+                        <span style={{ fontWeight: 700, fontSize: 16 }}>5.0</span>
+                        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>• Thành viên mới</span>
                     </div>
-                    <div className="badge badge-blue" style={{ marginTop: 12 }}>🌴 Miền Nam</div>
+                    <div className="badge badge-blue" style={{ marginTop: 12 }}>
+                        {region === 'NORTH' ? '🍁 Miền Bắc' : '🌴 Miền Nam'}
+                    </div>
                 </div>
 
                 {/* Menu */}
@@ -65,7 +74,7 @@ export default function Profile() {
                     ))}
                 </div>
 
-                <button className="btn btn-danger" onClick={() => navigate('/login')} style={{ marginTop: 24 }}>
+                <button className="btn btn-danger" onClick={handleLogout} style={{ marginTop: 24 }}>
                     <span className="material-icons-round">logout</span>
                     Đăng xuất
                 </button>

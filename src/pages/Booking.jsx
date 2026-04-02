@@ -1,25 +1,82 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useMemo } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useUser } from '../context/UserContext'
 import api from '../services/api'
 
-const vehicles = [
-    { id: 'BIKE', icon: 'two_wheeler', name: 'Xe máy', price: 15000, wait: '3 phút', color: '#0db9f2' },
-    { id: 'CAR_4_SEAT', icon: 'directions_car', name: 'Ô tô 4 chỗ', price: 45000, wait: '5 phút', color: '#10b981' },
-    { id: 'CAR_7_SEAT', icon: 'airport_shuttle', name: 'Ô tô 7 chỗ', price: 75000, wait: '8 phút', color: '#f97316' },
+// Base rates per km for each vehicle type
+const vehicleRates = [
+    { id: 'BIKE', icon: 'two_wheeler', name: 'Xe máy', ratePerKm: 5000, baseFare: 5000, wait: '3 phút', color: '#0db9f2' },
+    { id: 'CAR', icon: 'directions_car', name: 'Ô tô 4 chỗ', ratePerKm: 10000, baseFare: 10000, wait: '5 phút', color: '#10b981' },
+    { id: 'PREMIUM', icon: 'airport_shuttle', name: 'Ô tô 7 chỗ', ratePerKm: 14000, baseFare: 15000, wait: '8 phút', color: '#f97316' },
 ]
+
+// Haversine formula — returns distance in km
+function haversineKm(lat1, lng1, lat2, lng2) {
+    const R = 6371
+    const toRad = (v) => (v * Math.PI) / 180
+    const dLat = toRad(lat2 - lat1)
+    const dLng = toRad(lng2 - lng1)
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+        Math.sin(dLng / 2) * Math.sin(dLng / 2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+    return R * c
+}
+
+// Estimate duration in minutes based on average speed
+function estimateMinutes(distKm, vehicleId) {
+    const avgSpeeds = { BIKE: 25, CAR: 30, PREMIUM: 28 } // km/h
+    const speed = avgSpeeds[vehicleId] || 28
+    return Math.round((distKm / speed) * 60)
+}
+
+// Round price to nearest 1000đ
+function roundPrice(p) {
+    return Math.round(p / 1000) * 1000
+}
 
 export default function Booking() {
     const navigate = useNavigate()
+    const locationRouter = useLocation()
+    const pickup = locationRouter.state?.pickup || null
+    const destination = locationRouter.state?.destination || null
+    const paymentMethod = locationRouter.state?.paymentMethod || { id: 'CASH', icon: '💵', name: 'Tiền mặt', color: '#22c55e' }
+
     const { user, region } = useUser()
     const [selected, setSelected] = useState('BIKE')
     const [promo, setPromo] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
+
+    // Compute distance
+    const distanceKm = useMemo(() => {
+        if (pickup?.lat && destination?.lat) {
+            // Multiply by 1.3 to get road estimate (straight-line → road factor)
+            return haversineKm(pickup.lat, pickup.lng, destination.lat, destination.lng) * 1.3
+        }
+        return 0
+    }, [pickup, destination])
+
+    // Compute prices for all vehicles based on distance
+    const vehicles = useMemo(() => {
+        return vehicleRates.map(v => {
+            const fare = distanceKm > 0
+                ? roundPrice(v.baseFare + v.ratePerKm * distanceKm)
+                : roundPrice(v.baseFare + v.ratePerKm * 3) // default ~3km if no coords
+            return { ...v, price: fare }
+        })
+    }, [distanceKm])
+
     const vehicle = vehicles.find(v => v.id === selected)
     const discount = promo === 'GOIXE20' ? Math.round(vehicle.price * 0.2) : 0
-    const surcharge = 5000
+    const surcharge = distanceKm > 10 ? 10000 : 5000
     const total = vehicle.price + surcharge - discount
+    const estMinutes = distanceKm > 0 ? estimateMinutes(distanceKm, selected) : null
+
+    // Pickup info for display
+    const pickupName = pickup?.name || (region === 'NORTH' ? 'Hoàn Kiếm, Hà Nội' : '123 Nguyễn Huệ, Quận 1')
+    const destName = destination?.name || 'Chưa chọn điểm đến'
 
     const handleBooking = async () => {
         if (!user) {
@@ -32,15 +89,19 @@ export default function Booking() {
         setError('')
 
         try {
-            // Mock coordinates for demo (you can replace these with real location selection)
             const location = region === 'NORTH' ? 'Hanoi' : 'HCM'
-            const pickupCoords = region === 'NORTH'
-                ? { lat: 21.0285, lng: 105.8542 }  // Hanoi
-                : { lat: 10.7769, lng: 106.7009 }  // HCM
 
-            const dropoffCoords = region === 'NORTH'
-                ? { lat: 21.0368, lng: 105.8345 }
-                : { lat: 10.7800, lng: 106.6800 }
+            const pickupCoords = pickup?.lat
+                ? { lat: pickup.lat, lng: pickup.lng }
+                : (region === 'NORTH'
+                    ? { lat: 21.0285, lng: 105.8542 }
+                    : { lat: 10.7769, lng: 106.7009 })
+
+            const dropoffCoords = destination?.lat
+                ? { lat: destination.lat, lng: destination.lng }
+                : (region === 'NORTH'
+                    ? { lat: 21.0368, lng: 105.8345 }
+                    : { lat: 10.7800, lng: 106.6800 })
 
             const bookingPayload = {
                 user_id: user.id,
@@ -50,13 +111,14 @@ export default function Booking() {
                 dropoff_lat: dropoffCoords.lat,
                 dropoff_lng: dropoffCoords.lng,
                 vehicle_type: selected,
-                payment_method: 'CASH'
+                payment_method: paymentMethod.id,
+                pickup_address: pickupName,
+                dropoff_address: destName
             }
 
             const response = await api.bookTrip(bookingPayload)
 
             if (response.success) {
-                // Store booking data for next page
                 localStorage.setItem('currentBooking', JSON.stringify(response.data))
                 navigate('/searching')
             }
@@ -93,17 +155,23 @@ export default function Booking() {
             </div>
 
             <div style={{ padding: '20px', animation: 'slideUp 0.4s ease' }}>
-                {/* Route info */}
-                <div className="card" style={{ marginBottom: 16 }}>
+                {/* Route info — clickable to go back to search */}
+                <div className="card" style={{ marginBottom: 16, cursor: 'pointer' }} onClick={() => navigate('/search')}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                         <div style={{ width: 10, height: 10, background: '#22c55e', borderRadius: '50%' }} />
-                        <span style={{ fontSize: 13 }}>123 Nguyễn Huệ, Q.1</span>
+                        <span style={{ fontSize: 13, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pickupName}</span>
+                        <span className="material-icons-round" style={{ color: 'var(--text-muted)', fontSize: 16 }}>edit</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <div style={{ width: 10, height: 10, background: '#ef4444', borderRadius: '50%' }} />
-                        <span style={{ fontSize: 13 }}>Sân bay Tân Sơn Nhất</span>
+                        <span style={{ fontSize: 13, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{destName}</span>
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>📏 12.5 km • ⏱️ ~25 phút</div>
+                    {distanceKm > 0 && (
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
+                            📏 {distanceKm.toFixed(1)} km
+                            {estMinutes && <> • ⏱️ ~{estMinutes} phút</>}
+                        </div>
+                    )}
                 </div>
 
                 {/* Vehicle select */}
@@ -149,7 +217,7 @@ export default function Booking() {
 
                 <div className="card" style={{ marginBottom: 20 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 14 }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>Cước phí</span>
+                        <span style={{ color: 'var(--text-secondary)' }}>Cước phí ({distanceKm > 0 ? `${distanceKm.toFixed(1)} km` : '~3 km'})</span>
                         <span>{vehicle.price.toLocaleString()}đ</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 14 }}>
@@ -170,11 +238,11 @@ export default function Booking() {
                 </div>
 
                 {/* Payment method */}
-                <div className="card" style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }} onClick={() => navigate('/payment')}>
-                    <span className="material-icons-round" style={{ color: 'var(--accent-green)' }}>payments</span>
+                <div className="card" style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }} onClick={() => navigate('/payment', { state: locationRouter.state })}>
+                    <span style={{ fontSize: 24 }}>{paymentMethod.icon}</span>
                     <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Thanh toán bằng</div>
-                        <div style={{ fontWeight: 600 }}>💵 Tiền mặt</div>
+                        <div style={{ fontWeight: 600, color: paymentMethod.color }}>{paymentMethod.name}</div>
                     </div>
                     <span className="material-icons-round" style={{ color: 'var(--text-muted)' }}>chevron_right</span>
                 </div>
