@@ -4,12 +4,24 @@ import { useNavigate } from 'react-router-dom'
 export default function Searching() {
     const navigate = useNavigate()
     const [seconds, setSeconds] = useState(0)
+    const [bookingData, setBookingData] = useState(null)
 
     useEffect(() => {
+        const stored = localStorage.getItem('currentBooking')
+        if (stored) {
+            setBookingData(JSON.parse(stored))
+        }
         const interval = setInterval(() => setSeconds(s => s + 1), 1000)
         const timeout = setTimeout(() => navigate('/tracking'), 5000)
         return () => { clearInterval(interval); clearTimeout(timeout) }
     }, [navigate])
+
+    const pickupAddress = bookingData?.booking?.pickup_address || 'Đang lấy vị trí...'
+    const dropoffAddress = bookingData?.booking?.dropoff_address || 'Đang chờ...'
+    const vehicleType = bookingData?.booking?.vehicle_type === 'CAR' ? 'Ô tô 4 chỗ' : 
+                        bookingData?.booking?.vehicle_type === 'PREMIUM' ? 'Xe cao cấp' : 'Xe máy'
+    const fareAmount = bookingData?.booking?.fare_amount ? 
+                       Number(bookingData.booking.fare_amount).toLocaleString('vi-VN') + 'đ' : '...'
 
     return (
         <div className="page" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', padding: 24, textAlign: 'center' }}>
@@ -45,16 +57,16 @@ export default function Searching() {
             <div className="card" style={{ width: '100%', marginBottom: 24, textAlign: 'left' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                     <div style={{ width: 8, height: 8, background: '#22c55e', borderRadius: '50%' }} />
-                    <span style={{ fontSize: 13 }}>123 Nguyễn Huệ, Q.1</span>
+                    <span style={{ fontSize: 13 }}>{pickupAddress}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                     <div style={{ width: 8, height: 8, background: '#ef4444', borderRadius: '50%' }} />
-                    <span style={{ fontSize: 13 }}>Sân bay Tân Sơn Nhất</span>
+                    <span style={{ fontSize: 13 }}>{dropoffAddress}</span>
                 </div>
                 <div className="divider" style={{ margin: '10px 0' }} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Xe máy</span>
-                    <span style={{ fontWeight: 600 }}>15.000đ</span>
+                    <span style={{ color: 'var(--text-muted)' }}>{vehicleType}</span>
+                    <span style={{ fontWeight: 600 }}>{fareAmount}</span>
                 </div>
             </div>
 

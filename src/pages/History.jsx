@@ -36,7 +36,7 @@ export default function History() {
                 // Convert backend data to frontend format
                 const formattedRides = response.data.map((trip, index) => ({
                     id: trip.trip_id || index,
-                    type: mapVehicleType(trip.vehicle_type),
+                    type: getVehicleIcon(trip.vehicle_type),
                     from: trip.pickup_address || 'Điểm đón',
                     to: trip.dropoff_address || 'Điểm đến',
                     price: trip.amount ? `${trip.amount.toLocaleString()}đ` : 'N/A',
@@ -51,21 +51,16 @@ export default function History() {
         } catch (err) {
             console.error('History fetch error:', err)
             setError(err.message || 'Không thể tải lịch sử. Vui lòng thử lại.')
-
-            // Set mock data as fallback for demo
-            setRides([
-                { id: 1, type: 'two_wheeler', from: '123 Nguyễn Huệ', to: 'Sân bay TSN', price: '15.000đ', date: '07/03/2026', status: 'done', driver: 'Văn Tài', rating: 5 },
-            ])
         } finally {
             setLoading(false)
         }
     }
 
-    const mapVehicleType = (type) => {
+    const getVehicleIcon = (type) => {
         const typeMap = {
             'BIKE': 'two_wheeler',
-            'CAR_4_SEAT': 'directions_car',
-            'CAR_7_SEAT': 'airport_shuttle'
+            'CAR': 'directions_car',
+            'PREMIUM': 'airport_shuttle'
         }
         return typeMap[type] || 'two_wheeler'
     }

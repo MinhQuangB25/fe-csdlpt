@@ -1,23 +1,24 @@
 import { useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useUser } from '../context/UserContext'
 
 const saved = [
-    { icon: 'home', label: 'Nhà', addr: '123 Nguyễn Huệ, Q.1, TP.HCM' },
-    { icon: 'business', label: 'Công ty', addr: '456 Lê Lợi, Q.3, TP.HCM' },
+    { icon: 'home', label: 'Nhà', addr: '123 Nguyễn Huệ, Q.1, TP.HCM', lat: 10.7725, lng: 106.7025 },
+    { icon: 'business', label: 'Công ty', addr: '456 Lê Lợi, Q.3, TP.HCM', lat: 10.7745, lng: 106.7005 },
 ]
 const recent = [
-    { addr: 'Sân bay Tân Sơn Nhất', detail: 'Trường Sơn, Tân Bình', time: '2 ngày trước' },
-    { addr: 'Bệnh viện Chợ Rẫy', detail: '201B Nguyễn Chí Thanh, Q.5', time: '3 ngày trước' },
-    { addr: 'Đại học Bách Khoa', detail: '268 Lý Thường Kiệt, Q.10', time: '1 tuần trước' },
+    { addr: 'Sân bay Tân Sơn Nhất', detail: 'Trường Sơn, Tân Bình', time: '2 ngày trước', lat: 10.8116, lng: 106.6617 },
+    { addr: 'Bệnh viện Chợ Rẫy', detail: '201B Nguyễn Chí Thanh, Q.5', time: '3 ngày trước', lat: 10.7583, lng: 106.6606 },
+    { addr: 'Đại học Bách Khoa', detail: '268 Lý Thường Kiệt, Q.10', time: '1 tuần trước', lat: 10.7723, lng: 106.6582 },
 ]
 const hot = [
-    { icon: 'local_mall', name: 'Vincom Center', addr: '72 Lê Thánh Tôn, Q.1' },
-    { icon: 'local_cafe', name: 'Highlands Coffee', addr: '26 Lý Tự Trọng, Q.1' },
+    { icon: 'local_mall', name: 'Vincom Center', addr: '72 Lê Thánh Tôn, Q.1', lat: 10.7780, lng: 106.7020 },
+    { icon: 'local_cafe', name: 'Highlands Coffee', addr: '26 Lý Tự Trọng, Q.1', lat: 10.7784, lng: 106.7011 },
 ]
 
 export default function Search() {
     const navigate = useNavigate()
+    const location = useLocation()
     const { region } = useUser()
 
     // Which field is being edited: 'pickup' or 'destination'
@@ -95,14 +96,26 @@ export default function Search() {
     // Navigate to booking once both pickup & dest are set
     const goToBooking = (pickup, dest) => {
         navigate('/booking', {
-            state: { pickup, destination: dest }
+            state: { 
+                pickup, 
+                destination: dest,
+                vehicleType: location.state?.vehicleType 
+            }
         })
     }
 
-    // Auto-navigate when both are selected
+    // Auto-navigate when both are selected, or dest is selected with default pickup
     const tryAutoNavigate = (pickup, dest) => {
         if (pickup && dest) {
             goToBooking(pickup, dest)
+        } else if (!pickup && dest) {
+            const defaultPickup = {
+                name: region === 'NORTH' ? 'Hoàn Kiếm, Hà Nội' : '123 Nguyễn Huệ, Quận 1',
+                detail: region === 'NORTH' ? 'Hà Nội' : 'Quận 1, TP.HCM',
+                lat: region === 'NORTH' ? 21.0285 : 10.7769,
+                lng: region === 'NORTH' ? 105.8542 : 106.7009
+            }
+            goToBooking(defaultPickup, dest)
         }
     }
 
@@ -130,8 +143,8 @@ export default function Search() {
         tryAutoNavigate(pickup, destSelected)
     }
 
-    // For saved/recent/hot places, set as destination with no lat/lng
-    const defaultSelect = (name, detail) => {
+    // For saved/recent/hot places, set as destination
+    const defaultSelect = (loc) => {
         // Use region-based default pickup if not already set
         const defaultPickup = pickupSelected || {
             name: region === 'NORTH' ? 'Hoàn Kiếm' : 'Nguyễn Huệ',
@@ -139,7 +152,15 @@ export default function Search() {
             lat: region === 'NORTH' ? 21.0285 : 10.7769,
             lng: region === 'NORTH' ? 105.8542 : 106.7009
         }
-        goToBooking(defaultPickup, { name, detail })
+
+        const dest = {
+            name: loc.label || loc.name || loc.addr,
+            detail: loc.detail || loc.addr,
+            lat: loc.lat,
+            lng: loc.lng
+        }
+
+        goToBooking(defaultPickup, dest)
     }
 
     // Active query & results for current field
@@ -285,7 +306,7 @@ export default function Search() {
                     <h3 style={{ marginBottom: 12, fontSize: 15 }}>📌 Địa chỉ đã lưu</h3>
                     <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
                         {saved.map(s => (
-                            <button key={s.label} onClick={() => defaultSelect(s.label, s.addr)} className="card" style={{
+                            <button key={s.label} onClick={() => defaultSelect(s)} className="card" style={{
                                 flex: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, padding: 14
                             }}>
                                 <div style={{
@@ -306,7 +327,7 @@ export default function Search() {
                     <h3 style={{ marginBottom: 12, fontSize: 15 }}>🕒 Gần đây</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
                         {recent.map(r => (
-                            <button key={r.addr} onClick={() => defaultSelect(r.addr, r.detail)} className="card" style={{
+                            <button key={r.addr} onClick={() => defaultSelect(r)} className="card" style={{
                                 cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, padding: 14
                             }}>
                                 <span className="material-icons-round" style={{ color: 'var(--text-muted)' }}>history</span>
@@ -322,7 +343,7 @@ export default function Search() {
                     {/* Hot */}
                     <h3 style={{ marginBottom: 12, fontSize: 15 }}>🔥 Địa điểm phổ biến</h3>
                     {hot.map(h => (
-                        <button key={h.name} onClick={() => defaultSelect(h.name, h.addr)} className="card" style={{
+                        <button key={h.name} onClick={() => defaultSelect(h)} className="card" style={{
                             cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, padding: 14, marginBottom: 8, width: '100%'
                         }}>
                             <div style={{

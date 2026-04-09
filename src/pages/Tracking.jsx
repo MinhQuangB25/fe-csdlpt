@@ -1,7 +1,32 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet'
+import L from 'leaflet'
 import { useUser } from '../context/UserContext'
 import api from '../services/api'
+import { REGIONS } from '../services/constants'
+
+const pickupIcon = L.divIcon({
+    className: 'custom-pickup-marker',
+    html: `<div style="width: 14px; height: 14px; background: #22c55e; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(34,197,94,0.8);"></div>`,
+    iconSize: [14, 14], iconAnchor: [7, 7]
+})
+
+const destIcon = L.divIcon({
+    className: 'custom-dest-marker',
+    html: `<div style="width: 14px; height: 14px; background: #ef4444; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(239,68,68,0.8);"></div>`,
+    iconSize: [14, 14], iconAnchor: [7, 7]
+})
+
+function MapBoundsFitter({ bounds }) {
+    const map = useMap()
+    useEffect(() => {
+        if (bounds.length > 0) {
+            map.fitBounds(bounds, { padding: [40, 40] })
+        }
+    }, [bounds, map])
+    return null
+}
 
 export default function Tracking() {
     const navigate = useNavigate()
@@ -102,16 +127,26 @@ export default function Tracking() {
                 height: '45vh', position: 'relative',
                 background: 'linear-gradient(135deg, #0a1628, #152847)', overflow: 'hidden'
             }}>
-                <div style={{
-                    position: 'absolute', inset: 0, opacity: 0.08,
-                    backgroundImage: 'linear-gradient(rgba(13,185,242,.3) 1px,transparent 1px),linear-gradient(90deg,rgba(13,185,242,.3) 1px,transparent 1px)',
-                    backgroundSize: '40px 40px'
-                }} />
-                <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-                    <path d="M 60 200 Q 140 100 200 150 T 340 100" stroke="#0db9f2" strokeWidth="3" fill="none" opacity="0.7" />
-                    <circle cx="60" cy="200" r="6" fill="#22c55e" stroke="white" strokeWidth="2" />
-                    <circle cx="340" cy="100" r="6" fill="#ef4444" stroke="white" strokeWidth="2" />
-                </svg>
+                <MapContainer 
+                    center={[booking.pickup_lat, booking.pickup_lng]} 
+                    zoom={14} 
+                    zoomControl={false}
+                    style={{ height: '100%', width: '100%' }}
+                >
+                    <TileLayer
+                        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                        attribution='&copy; CARTO'
+                    />
+                    
+                    <Marker position={[booking.pickup_lat, booking.pickup_lng]} icon={pickupIcon} />
+                    <Marker position={[booking.dropoff_lat, booking.dropoff_lng]} icon={destIcon} />
+                    
+                    <Polyline 
+                        positions={[[booking.pickup_lat, booking.pickup_lng], [booking.dropoff_lat, booking.dropoff_lng]]} 
+                        pathOptions={{ color: '#0db9f2', weight: 4, dashArray: '10, 10' }} 
+                    />
+                    <MapBoundsFitter bounds={[[booking.pickup_lat, booking.pickup_lng], [booking.dropoff_lat, booking.dropoff_lng]]} />
+                </MapContainer>
                 {/* Driver car icon */}
                 <div style={{
                     position: 'absolute', top: '40%', left: '45%',
@@ -150,10 +185,12 @@ export default function Tracking() {
                 {/* ETA */}
                 <div style={{ textAlign: 'center', marginBottom: 20 }}>
                     <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                        {status === 'IN_PROGRESS' ? 'Thời gian còn lại' : 'Tài xế đang đến'}
+                        {status === 'IN_PROGRESS' ? 'Thời gian đến điểm đến' : 'Tài xế đang đến'}
                     </div>
                     <div style={{ fontSize: 36, fontWeight: 800, color: 'var(--accent-blue)' }}>
-                        {status === 'IN_PROGRESS' ? '15 phút' : '5 phút'}
+                        {status === 'IN_PROGRESS' 
+                            ? `${Math.max(1, Math.round((booking.distance_km / 20) * 60))} phút` 
+                            : '3-5 phút'}
                     </div>
                 </div>
 
@@ -197,11 +234,11 @@ export default function Tracking() {
                 <div className="card" style={{ marginBottom: 16 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                         <div style={{ width: 8, height: 8, background: '#22c55e', borderRadius: '50%' }} />
-                        <span style={{ fontSize: 13 }}>Điểm đón ({Number(booking.pickup_lat || 0).toFixed(4)}, {Number(booking.pickup_lng || 0).toFixed(4)})</span>
+                        <span style={{ fontSize: 13, flex: 1 }}>{booking.pickup_address || `Điểm đón (${Number(booking.pickup_lat || 0).toFixed(4)}, ${Number(booking.pickup_lng || 0).toFixed(4)})`}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <div style={{ width: 8, height: 8, background: '#ef4444', borderRadius: '50%' }} />
-                        <span style={{ fontSize: 13 }}>Điểm đến ({Number(booking.dropoff_lat || 0).toFixed(4)}, {Number(booking.dropoff_lng || 0).toFixed(4)})</span>
+                        <span style={{ fontSize: 13, flex: 1 }}>{booking.dropoff_address || `Điểm đến (${Number(booking.dropoff_lat || 0).toFixed(4)}, ${Number(booking.dropoff_lng || 0).toFixed(4)})`}</span>
                     </div>
                     <div className="divider" />
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>

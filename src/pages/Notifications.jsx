@@ -1,22 +1,58 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import BottomNav from '../components/BottomNav'
-
-const notifications = [
-    { id: 1, type: 'ride', icon: 'two_wheeler', title: 'Chuyến đi hoàn thành', desc: 'Bạn đã đến Sân bay Tân Sơn Nhất. Tổng: 15.000đ', time: '5 phút trước', unread: true },
-    { id: 2, type: 'promo', icon: 'local_offer', title: 'Giảm 20% cho chuyến tiếp', desc: 'Dùng mã GOIXE20 để được giảm 20% tối đa 30K', time: '1 giờ trước', unread: true },
-    { id: 3, type: 'system', icon: 'warning', title: 'Bảo trì Server Miền Bắc', desc: 'Server HN bảo trì 23:00-02:00. Dịch vụ không bị ảnh hưởng.', time: '3 giờ trước', unread: false },
-    { id: 4, type: 'ride', icon: 'star', title: 'Tài xế đánh giá bạn 5 sao', desc: 'Nguyễn Văn Tài đã đánh giá bạn 5 sao', time: 'Hôm qua', unread: false },
-    { id: 5, type: 'promo', icon: 'celebration', title: 'Chào mừng thành viên mới!', desc: 'Nhận mã NEWUSER giảm 30K cho chuyến đầu', time: '2 ngày trước', unread: false },
-    { id: 6, type: 'system', icon: 'update', title: 'Cập nhật phiên bản 2.1', desc: 'Nhiều tính năng mới và sửa lỗi', time: '1 tuần trước', unread: false },
-]
+import { useUser } from '../context/UserContext'
+import api from '../services/api'
 
 const tabs = ['Tất cả', 'Chuyến đi', 'Khuyến mãi', 'Hệ thống']
 const tabMap = { 'Chuyến đi': 'ride', 'Khuyến mãi': 'promo', 'Hệ thống': 'system' }
 
+function timeAgo(dateString) {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now - date
+    const diffMins = Math.floor(diffMs / 60000)
+    if (diffMins < 1) return 'Vừa xong'
+    if (diffMins < 60) return `${diffMins} phút trước`
+    const diffHours = Math.floor(diffMins / 60)
+    if (diffHours < 24) return `${diffHours} giờ trước`
+    const diffDays = Math.floor(diffHours / 24)
+    if (diffDays === 1) return 'Hôm qua'
+    return `${diffDays} ngày trước`
+}
+
 export default function Notifications() {
     const navigate = useNavigate()
+    const { user } = useUser()
     const [tab, setTab] = useState('Tất cả')
+    const [notifications, setNotifications] = useState([])
+    
+    useEffect(() => {
+        if (!user) return
+        
+        const loadNotifications = async () => {
+            try {
+                const res = await api.getNotifications(user.id)
+                if (res.success) {
+                    const dynamicNotifications = res.data.map(n => ({
+                        id: n.id,
+                        type: n.type,
+                        icon: n.icon,
+                        title: n.title,
+                        desc: n.description,
+                        time: timeAgo(n.created_at),
+                        unread: !n.is_read
+                    }))
+                    setNotifications(dynamicNotifications)
+                }
+            } catch (err) {
+                console.error("Fetch notifications failed:", err)
+            }
+        }
+        
+        loadNotifications()
+    }, [user])
+
     const unreadCount = notifications.filter(n => n.unread).length
 
     const filtered = tab === 'Tất cả' ? notifications : notifications.filter(n => n.type === tabMap[tab])

@@ -12,6 +12,9 @@ L.Icon.Default.mergeOptions({
     shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
+import { REGIONS, VEHICLE_RATES } from '../services/constants'
+import { useUser } from '../context/UserContext'
+
 // Custom user pulse marker
 const userIcon = L.divIcon({
     className: 'custom-pulse-marker',
@@ -25,22 +28,20 @@ const userIcon = L.divIcon({
     iconAnchor: [20, 20]
 });
 
-const vehicles = [
-    { icon: 'two_wheeler', name: 'Xe máy', price: '15.000đ', time: '3 phút', color: '#0db9f2' },
-    { icon: 'directions_car', name: 'Ô tô 4 chỗ', price: '32.000đ', time: '5 phút', color: '#10b981' },
-    { icon: 'airport_shuttle', name: 'Ô tô 7 chỗ', price: '45.000đ', time: '8 phút', color: '#f97316' },
-]
+const vehicles = Object.values(VEHICLE_RATES)
 
 export default function Home() {
     const navigate = useNavigate()
+    const { region } = useUser()
+    const regionConfig = REGIONS[region] || REGIONS.SOUTH
 
     return (
         <div className="page">
             {/* Map Area */}
             <div style={{ height: '55vh', position: 'relative', zIndex: 1 }}>
                 <MapContainer 
-                    center={[10.762622, 106.660172]} // Default to Ho Chi Minh City
-                    zoom={15} 
+                    center={regionConfig.center} 
+                    zoom={regionConfig.zoom} 
                     zoomControl={false}
                     style={{ height: '100%', width: '100%' }}
                 >
@@ -48,7 +49,7 @@ export default function Home() {
                         url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                         attribution='&copy; <a href="https://carto.com/">Carto</a>'
                     />
-                    <Marker position={[10.762622, 106.660172]} icon={userIcon} />
+                    <Marker position={regionConfig.center} icon={userIcon} />
                 </MapContainer>
 
                 {/* GPS button overlay */}
@@ -70,7 +71,7 @@ export default function Home() {
                 }}>
                     <div className="badge badge-green" style={{ background: 'rgba(16, 185, 129, 0.2)', border: '1px solid rgba(16,185,129,0.3)', backdropFilter: 'blur(5px)' }}>
                         <span className="status-dot online" style={{ width: 6, height: 6 }} />
-                        Miền Nam
+                        {regionConfig.name}
                     </div>
                 </div>
             </div>
@@ -98,25 +99,20 @@ export default function Home() {
                 <h3 style={{ marginBottom: 12 }}>Chọn loại xe</h3>
                 <div style={{ display: 'flex', gap: 12 }}>
                     {vehicles.map(v => (
-                        <button
-                            key={v.name}
-                            onClick={() => navigate('/search')}
-                            className="card"
-                            style={{
-                                flex: 1, textAlign: 'center', cursor: 'pointer',
-                                padding: '16px 8px', border: '1px solid var(--border-color)',
-                            }}
+                        <button 
+                            key={v.id}
+                            className={`vehicle-btn ${v.id === 'BIKE' ? 'active' : ''}`}
+                            onClick={() => navigate('/booking', { state: { vehicleType: v.id } })}
                         >
-                            <div style={{
-                                width: 48, height: 48, margin: '0 auto 8px',
-                                background: `${v.color}20`, borderRadius: 14,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center'
+                            <div style={{ 
+                                width: 44, height: 44, borderRadius: 12, 
+                                background: `${v.color}15`, display: 'flex', 
+                                alignItems: 'center', justifyContent: 'center', marginBottom: 8
                             }}>
                                 <span className="material-icons-round" style={{ color: v.color, fontSize: 26 }}>{v.icon}</span>
                             </div>
-                            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>{v.name}</div>
-                            <div style={{ fontSize: 15, fontWeight: 700, color: v.color }}>{v.price}</div>
-                            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>~{v.time}</div>
+                            <div style={{ fontWeight: 700, marginBottom: 2 }}>{v.name}</div>
+                            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Giá rẻ • 3-5 phút</div>
                         </button>
                     ))}
                 </div>

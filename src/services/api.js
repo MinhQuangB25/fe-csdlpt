@@ -139,6 +139,13 @@ class ApiService {
             method: 'GET',
         });
     }
+
+    // Notifications
+    async getNotifications(userId) {
+        return this.request(`/api/users/${userId}/notifications`, {
+            method: 'GET',
+        });
+    }
 }
 
 export default new ApiService();
